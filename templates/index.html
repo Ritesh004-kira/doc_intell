@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DocIntel — Azure Document Intelligence</title>
+  <meta name="description" content="Analyze documents and URLs with Azure AI Document Intelligence prebuilt-read model."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #13161e;
+      --surface2: #1a1e2a;
+      --border: rgba(255,255,255,0.07);
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --accent-glow: rgba(99,102,241,0.25);
+      --success: #22d3a0;
+      --warning: #f59e0b;
+      --error: #f43f5e;
+      --text: #e2e8f0;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ───── BACKGROUND MESH ───── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(99,102,241,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(129,140,248,0.12) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    /* ───── HEADER ───── */
+    header {
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 24px var(--accent-glow);
+      font-size: 22px;
+    }
+    .logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent2); }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #e2e8f0 30%, var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    /* ───── CARDS ───── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 20px;
+      transition: border-color 0.25s;
+    }
+    .card:hover { border-color: rgba(99,102,241,0.3); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .card-icon {
+      width: 36px; height: 36px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ───── CREDENTIALS ───── */
+    .cred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    @media (max-width: 600px) { .cred-grid { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 500; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; }
+
+    .input-wrap { position: relative; }
+    input[type="text"], input[type="password"], input[type="url"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 11px 42px 11px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    input::placeholder { color: var(--text-muted); }
+
+    .toggle-vis {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: 16px;
+      transition: color 0.2s;
+    }
+    .toggle-vis:hover { color: var(--accent2); }
+
+    /* ───── TABS ───── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      flex: 1; padding: 9px 0; text-align: center;
+      font-size: 13px; font-weight: 500; color: var(--text-muted);
+      border-radius: 6px; cursor: pointer; border: none; background: none;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+    .tab:not(.active):hover { color: var(--text-dim); background: rgba(255,255,255,0.05); }
+
+    /* ───── PANELS ───── */
+    .panel { display: none; flex-direction: column; gap: 14px; }
+    .panel.active { display: flex; }
+
+    /* ───── DROP ZONE ───── */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      background: var(--surface2);
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.07);
+    }
+    .dropzone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .dz-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+    .dz-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+    .dz-hint { font-size: 13px; color: var(--text-muted); }
+    .dz-file-name {
+      margin-top: 10px; font-size: 13px; color: var(--success);
+      font-weight: 500; display: none;
+    }
+
+    /* ───── BUTTONS ───── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      padding: 12px 24px; border-radius: var(--radius-sm);
+      border: none; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      width: 100%;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(99,102,241,0.4); }
+    .btn-primary:active { transform: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ───── SPINNER ───── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ───── STATUS ───── */
+    .status-bar {
+      display: none; align-items: center; gap: 10px;
+      padding: 13px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500;
+    }
+    .status-bar.error { background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); color: var(--error); display: flex; }
+    .status-bar.success { background: rgba(34,211,160,0.1); border: 1px solid rgba(34,211,160,0.3); color: var(--success); display: flex; }
+    .status-bar.loading { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); color: var(--accent2); display: flex; }
+
+    /* ───── RESULTS ───── */
+    #results { display: none; }
+
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; flex-wrap: gap;
+    }
+    .results-title { font-size: 18px; font-weight: 700; }
+    .badge {
+      font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .badge-success { background: rgba(34,211,160,0.15); color: var(--success); border: 1px solid rgba(34,211,160,0.3); }
+    .badge-warn { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+
+    /* Stat row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-box .stat-val { font-size: 24px; font-weight: 700; color: var(--accent2); }
+    .stat-box .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Tabs inside results */
+    .result-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 16px; }
+    .result-tab { flex: 1; padding: 8px 0; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-muted); border-radius: 6px; cursor: pointer; border: none; background: none; transition: all 0.2s; }
+    .result-tab.active { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .result-tab:not(.active):hover { color: var(--text-dim); }
+
+    .result-panel { display: none; }
+    .result-panel.active { display: block; }
+
+    /* Full content view */
+    .content-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      max-height: 340px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-dim);
+      font-family: 'Inter', monospace;
+    }
+    .content-box::-webkit-scrollbar { width: 6px; }
+    .content-box::-webkit-scrollbar-track { background: transparent; }
+    .content-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Page accordion */
+    .page-block { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .page-header:hover { background: rgba(255,255,255,0.03); }
+    .page-title { font-size: 13px; font-weight: 600; }
+    .page-meta { font-size: 12px; color: var(--text-muted); }
+    .chevron { font-size: 12px; color: var(--text-muted); transition: transform 0.2s; }
+    .page-block.open .chevron { transform: rotate(180deg); }
+    .page-body { display: none; padding: 0 18px 16px; }
+    .page-block.open .page-body { display: block; }
+
+    .lines-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .lines-table th { text-align: left; padding: 8px 10px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+    .lines-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text-dim); vertical-align: top; }
+    .lines-table tr:last-child td { border-bottom: none; }
+
+    .words-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .word-chip {
+      display: inline-flex; flex-direction: column; align-items: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 8px;
+      font-size: 11px; gap: 2px;
+    }
+    .word-chip .wc { font-weight: 600; color: var(--text); }
+    .word-chip .conf {
+      font-size: 10px;
+    }
+    .conf.high { color: var(--success); }
+    .conf.mid { color: var(--warning); }
+    .conf.low { color: var(--error); }
+
+    /* Footer */
+    footer { text-align: center; padding: 40px 0 32px; font-size: 12px; color: var(--text-muted); }
+    footer a { color: var(--accent2); text-decoration: none; }
+
+    /* Transitions */
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📄</div>
+      <div class="logo-text">Doc<span>Intel</span></div>
+    </div>
+    <h1>Azure Document Intelligence</h1>
+    <p class="subtitle">Extract text, structure, and insights from documents in seconds</p>
+  </header>
+
+  <!-- ─── CREDENTIALS ─── -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <div class="card-icon">🔑</div>
+      <div>
+        <div class="card-title">Azure Credentials</div>
+        <div class="card-subtitle">Your credentials are never stored or transmitted beyond this session</div>
+      </div>
+    </div>
+    <div class="cred-grid">
+      <div class="field">
+        <label>Endpoint URL</label>
+        <input type="url" id="endpoint" placeholder="https://your-resource.cognitiveservices.azure.com/" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <div class="input-wrap">
+          <input type="password" id="apikey" placeholder="Enter your API key" autocomplete="off"/>
+          <button class="toggle-vis" onclick="toggleKey()" id="toggleBtn" title="Show/hide key">👁</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ANALYZE CARD ─── -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <div class="card-icon">🔍</div>
+      <div>
+        <div class="card-title">Document Source</div>
+        <div class="card-subtitle">Choose a URL or upload a local file (PDF, JPEG, PNG, TIFF, DOCX, XLSX, PPTX)</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('url')" id="tab-url">🌐 &nbsp;Paste URL</button>
+      <button class="tab" onclick="switchTab('file')" id="tab-file">📁 &nbsp;Upload File</button>
+    </div>
+
+    <!-- URL Panel -->
+    <div class="panel active" id="panel-url">
+      <div class="field">
+        <label>Document URL</label>
+        <input type="url" id="docUrl" placeholder="https://example.com/document.pdf" autocomplete="off"/>
+      </div>
+    </div>
+
+    <!-- File Panel -->
+    <div class="panel" id="panel-file">
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif,.docx,.xlsx,.pptx,.bmp,.heif"
+               onchange="onFileChange(event)"/>
+        <span class="dz-icon">📂</span>
+        <div class="dz-title">Drop your file here</div>
+        <div class="dz-hint">or click to browse &mdash; PDF, JPEG, PNG, TIFF, DOCX supported</div>
+        <div class="dz-file-name" id="fileName"></div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar" id="statusBar"></div>
+
+    <!-- Analyze Button -->
+    <button class="btn btn-primary" id="analyzeBtn" onclick="analyze()">
+      <span id="btnIcon">✨</span>
+      <span id="btnText">Analyze Document</span>
+    </button>
+  </div>
+
+  <!-- ─── RESULTS ─── -->
+  <div id="results" class="fade-in">
+    <div class="card">
+      <div class="results-header">
+        <div class="results-title">Analysis Results</div>
+        <span class="badge badge-success" id="resultBadge">Done</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- Result tabs -->
+      <div class="result-tabs">
+        <button class="result-tab active" onclick="switchResultTab('content')" id="rtab-content">Full Text</button>
+        <button class="result-tab" onclick="switchResultTab('pages')" id="rtab-pages">Pages</button>
+        <button class="result-tab" onclick="switchResultTab('words')" id="rtab-words">Words</button>
+      </div>
+
+      <!-- Full content -->
+      <div class="result-panel active" id="rpanel-content">
+        <div class="content-box" id="fullContent"></div>
+      </div>
+
+      <!-- Pages -->
+      <div class="result-panel" id="rpanel-pages">
+        <div id="pagesContainer"></div>
+      </div>
+
+      <!-- Words cloud -->
+      <div class="result-panel" id="rpanel-words">
+        <div class="words-wrap" id="wordsContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Powered by <a href="https://learn.microsoft.com/azure/ai-services/document-intelligence/" target="_blank">Azure AI Document Intelligence</a> &middot; prebuilt-read model
+  </footer>
+</div>
+
+<script>
+  let activeTab = 'url';
+
+  /* ── TOGGLE KEY VISIBILITY ── */
+  function toggleKey() {
+    const inp = document.getElementById('apikey');
+    const btn = document.getElementById('toggleBtn');
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+    else { inp.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  /* ── TAB SWITCH ── */
+  function switchTab(tab) {
+    activeTab = tab;
+    ['url','file'].forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+      document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+    });
+  }
+
+  /* ── FILE DRAG/DROP ── */
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) { document.getElementById('fileInput').files = e.dataTransfer.files; showFileName(f.name); }
+  });
+
+  function onFileChange(e) { if (e.target.files[0]) showFileName(e.target.files[0].name); }
+  function showFileName(name) {
+    const el = document.getElementById('fileName');
+    el.textContent = '✅ ' + name; el.style.display = 'block';
+  }
+
+  /* ── STATUS ── */
+  function setStatus(type, msg) {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + type;
+    bar.innerHTML = (type === 'loading' ? '<div class="spinner"></div>' : (type === 'error' ? '❌' : '✅')) + ' ' + msg;
+  }
+  function clearStatus() { document.getElementById('statusBar').className = 'status-bar'; }
+
+  /* ── SET LOADING ── */
+  function setLoading(on) {
+    const btn = document.getElementById('analyzeBtn');
+    const icon = document.getElementById('btnIcon');
+    const txt = document.getElementById('btnText');
+    btn.disabled = on;
+    if (on) {
+      icon.outerHTML = '<div class="spinner" id="btnIcon"></div>';
+      txt.textContent = 'Analyzing…';
+    } else {
+      document.getElementById('btnIcon').outerHTML = '<span id="btnIcon">✨</span>';
+      txt.textContent = 'Analyze Document';
+    }
+  }
+
+  /* ── MAIN ANALYZE ── */
+  async function analyze() {
+    const endpoint = document.getElementById('endpoint').value.trim();
+    const key = document.getElementById('apikey').value.trim();
+
+    if (!endpoint) return setStatus('error', 'Please enter your Azure endpoint URL.');
+    if (!key) return setStatus('error', 'Please enter your Azure API key.');
+
+    let response;
+    setLoading(true);
+    setStatus('loading', 'Sending request to Azure…');
+    document.getElementById('results').style.display = 'none';
+
+    try {
+      if (activeTab === 'url') {
+        const url = document.getElementById('docUrl').value.trim();
+        if (!url) { setStatus('error', 'Please enter a document URL.'); setLoading(false); return; }
+        response = await fetch('/analyze/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint, key, url }),
+        });
+      } else {
+        const fileInput = document.getElementById('fileInput');
+        if (!fileInput.files[0]) { setStatus('error', 'Please select a file to upload.'); setLoading(false); return; }
+        const form = new FormData();
+        form.append('endpoint', endpoint);
+        form.append('key', key);
+        form.append('file', fileInput.files[0]);
+        response = await fetch('/analyze/file', { method: 'POST', body: form });
+      }
+
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || 'Unknown error');
+
+      clearStatus();
+      renderResults(data.result);
+    } catch (err) {
+      setStatus('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── RENDER ── */
+  function renderResults(res) {
+    // Stats
+    const totalWords = res.pages.reduce((s, p) => s + (p.words ? p.words.length : 0), 0);
+    const totalLines = res.pages.reduce((s, p) => s + (p.lines ? p.lines.length : 0), 0);
+    const handwritten = res.styles.some(s => s.is_handwritten);
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-box"><div class="stat-val">${res.pages.length}</div><div class="stat-lbl">Pages</div></div>
+      <div class="stat-box"><div class="stat-val">${totalLines}</div><div class="stat-lbl">Lines</div></div>
+      <div class="stat-box"><div class="stat-val">${totalWords}</div><div class="stat-lbl">Words</div></div>
+      <div class="stat-box"><div class="stat-val">${handwritten ? '✍️' : '🖨️'}</div><div class="stat-lbl">${handwritten ? 'Handwritten' : 'Printed'}</div></div>
+    `;
+
+    // Badge
+    document.getElementById('resultBadge').textContent = `${res.pages.length} page${res.pages.length !== 1 ? 's' : ''} analyzed`;
+
+    // Full text
+    document.getElementById('fullContent').textContent = res.content || '(No content extracted)';
+
+    // Pages
+    const pc = document.getElementById('pagesContainer');
+    pc.innerHTML = '';
+    res.pages.forEach(page => {
+      const block = document.createElement('div');
+      block.className = 'page-block';
+      const linesRows = (page.lines || []).map((l, i) =>
+        `<tr><td>${l.index}</td><td>${escHtml(l.content)}</td><td style="font-size:11px;font-family:monospace">${escHtml(l.bounding_box)}</td></tr>`
+      ).join('');
+      block.innerHTML = `
+        <div class="page-header" onclick="togglePage(this)">
+          <div class="page-title">Page ${page.page_number}</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="page-meta">${page.width}×${page.height} ${page.unit} &mdash; ${(page.lines||[]).length} lines</span>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="page-body">
+          <table class="lines-table">
+            <thead><tr><th>#</th><th>Content</th><th>Bounding Box</th></tr></thead>
+            <tbody>${linesRows || '<tr><td colspan="3" style="color:var(--text-muted)">No lines detected</td></tr>'}</tbody>
+          </table>
+        </div>`;
+      pc.appendChild(block);
+    });
+
+    // Words
+    const wc = document.getElementById('wordsContainer');
+    wc.innerHTML = '';
+    res.pages.forEach(page => {
+      (page.words || []).forEach(w => {
+        const conf = w.confidence != null ? w.confidence : null;
+        const confClass = conf == null ? '' : conf >= 0.9 ? 'high' : conf >= 0.7 ? 'mid' : 'low';
+        const confLabel = conf != null ? (conf * 100).toFixed(0) + '%' : '—';
+        const chip = document.createElement('div');
+        chip.className = 'word-chip';
+        chip.innerHTML = `<span class="wc">${escHtml(w.content)}</span><span class="conf ${confClass}">${confLabel}</span>`;
+        wc.appendChild(chip);
+      });
+    });
+
+    // Show results
+    const resultsEl = document.getElementById('results');
+    resultsEl.style.display = 'block';
+    resultsEl.classList.remove('fade-in');
+    void resultsEl.offsetWidth;
+    resultsEl.classList.add('fade-in');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Reset to first result tab
+    switchResultTab('content');
+  }
+
+  function togglePage(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function switchResultTab(tab) {
+    ['content','pages','words'].forEach(t => {
+      document.getElementById('rtab-' + t).classList.toggle('active', t === tab);
+      document.getElementById('rpanel-' + t).classList.toggle('active', t === tab);
+    });
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── ENTER KEY on URL ── */
+  document.getElementById('docUrl').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+</script>
+</body>
+</html>
