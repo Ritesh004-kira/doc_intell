@@ -12,7 +12,12 @@ from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 import numpy as np
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+# Use absolute paths for templates and static folders for Vercel compatibility
+base_dir = os.path.dirname(os.path.abspath(__file__))
+template_dir = os.path.join(base_dir, 'templates')
+static_dir = os.path.join(base_dir, 'static')
+
+app = Flask(__name__, static_folder=static_dir, template_folder=template_dir)
 CORS(app)
 
 
