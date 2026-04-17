@@ -17,7 +17,7 @@ Remember to remove the key from your code when you're done, and never post it pu
 secure methods to store and access your credentials. For more information, see 
 https://docs.microsoft.com/en-us/azure/cognitive-services/cognitive-services-security?tabs=command-line%2Ccsharp#environment-variables-and-application-configuration
 """
-endpoint = "https://akshat.cognitiveservices.azure.com/"
+endpoint = "https://docintell0014.cognitiveservices.azure.com/"
 key = os.getenv('AZURE_FORM_RECOGNIZER_KEY')
 
 def format_bounding_box(bounding_box):
